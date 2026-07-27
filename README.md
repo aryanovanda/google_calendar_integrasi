@@ -16,6 +16,9 @@ An Express backend proxy that integrates with **Google Calendar API** to provide
 - [5. Chatbot Workflow (Platform v3 / Agentic Platform)](#5-chatbot-workflow-platform-v3--agentic-platform)
   - [Chatbot Workflow JSON](#chatbot-workflow-json)
 - [Webchat Bot Example](#webchat-bot-example)
+- [API Reference](#api-reference)
+- [Known Issues](#known-issues)
+- [Solved Issues](#solved-issues)
 - [Working Bot Footage](#working-bot-footage)
 
 ---
@@ -29,7 +32,10 @@ An Express backend proxy that integrates with **Google Calendar API** to provide
 | 3 | GitHub Account | For repository hosting |
 | 4 | Vercel Account | Connected to your GitHub Account |
 | 5 | Git | Version control |
-| 6 | Botika Account | Access to Platform v3 |
+| 6 | Node.js 22+ | Runtime environment |
+| 7 | IDE | Preferably integrated with GitHub |
+| 8 | Botika Account | Access to Platform v3 |
+| 9 | Postman *(optional)* | For API testing |
 
 ---
 
@@ -58,7 +64,7 @@ An Express backend proxy that integrates with **Google Calendar API** to provide
 ![Manage Keys](public/chatbot/images/3dots-managekeys.png)
 
 4. Click **"Add key"** → **"Create new key"** → select **JSON** format.
-5. <a id="downloaded-json"></a>A JSON file will be downloaded automatically. **Save this file securely.**
+5. A JSON file will be downloaded automatically. **Save this file securely.**
 
 > [!NOTE]
 > The downloaded JSON has the following structure. You will need the `private_key` and `client_email` values later.
@@ -92,12 +98,12 @@ An Express backend proxy that integrates with **Google Calendar API** to provide
 
 ![Shared With Section](public/chatbot/images/sharedwith.png)
 
-4. Click **"Add people and groups"** and enter the **Service Account email** from your Google Cloud Console (the `client_email` value in the [JSON](#downloaded-json)).
+4. Click **"Add people and groups"** and enter the **Service Account email** from your Google Cloud Console (the `client_email` value in the JSON).
 5. Set the permission to **"Make changes to events"**.
 
 ![Share with Service Account](public/chatbot/images/sharewithserviceaccount.png)
 
-6. <a id="integrate-calendar"></a>Scroll down to the **"Integrate calendar"** section and copy the **Calendar ID**.
+6. Scroll down to the **"Integrate calendar"** section and copy the **Calendar ID**.
 
 > [!TIP]
 > If you selected your primary calendar, the Calendar ID is usually your Google email address.
@@ -115,9 +121,44 @@ An Express backend proxy that integrates with **Google Calendar API** to provide
 * [package.json](package.json)
 * [package-lock.json](package-lock.json)
 
-### 3.2 Push to GitHub
+### 3.2 Configure Environment Variables
 
-Push the code to your own GitHub repository using Git or manually uploads your file to [GitHub](https://github.com).
+```bash
+cp .env.example .env
+```
+
+Open the `.env` file and fill in the following variables:
+
+| Variable | Description | Source |
+|----------|-------------|--------|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service Account email | `client_email` field in the downloaded JSON |
+| `GOOGLE_PRIVATE_KEY` | Private key string | `private_key` field in the downloaded JSON |
+| `GOOGLE_CALENDAR_ID` | Calendar ID | "Integrate calendar" section in Google Calendar settings |
+
+### 3.3 Install Dependencies
+
+```bash
+npm install
+```
+
+### 3.4 Test Locally
+
+1. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+2. The server will be available at `http://localhost:3000`.
+
+3. Use **Postman** (or any API client) to test the endpoints. Refer to the [API Reference](#api-reference) section below for endpoint details, example parameters, and expected responses.
+
+### 3.5 Push to GitHub
+
+Push the code to your own GitHub repository using Git or your IDE's built-in source control.
+
+> [!IMPORTANT]
+> Ensure your GitHub account is integrated with your IDE and that Git is installed on your system.
 
 ![GitHub Repository](public/chatbot/images/repo.png)
 
@@ -133,14 +174,7 @@ Push the code to your own GitHub repository using Git or manually uploads your f
 
 ![Import Repository](public/chatbot/images/importrepo.png)
 
-4. Under **Environment Variables**, fill the Vercel environment variable field with these contents:
-
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service Account email | `client_email` field in the downloaded [JSON](#downloaded-json) or from Google Cloud Console Service Account list |
-| `GOOGLE_PRIVATE_KEY` | Private key string | `private_key` field in the downloaded [JSON](#downloaded-json) |
-| `GOOGLE_CALENDAR_ID` | Calendar ID | "Integrate calendar" section in [Google Calendar settings](#integrate-calendar) |
-
+4. Under **Environment Variables**, copy the entire content of your `.env` file and paste it into the Vercel environment variable field.
 5. Click **Deploy** and wait for the deployment to complete.
 
 ### 4.2 Domain Setup
@@ -154,6 +188,9 @@ https://<your-domain>/api/reminder/<operation>
 You may also configure a custom domain on Vercel if desired.
 
 ![Domain Settings](public/chatbot/images/domain.png)
+
+> [!NOTE]
+> Refer to the [API Reference](#api-reference) section for the full list of endpoints, parameters, and response formats.
 
 ---
 
@@ -205,6 +242,252 @@ You can try out a live example of the reminder bot running on Botika Webchat:
 
 ---
 
+## API Reference
+
+All endpoints use the **POST** method and accept/return **JSON**.
+
+**Base URL:** `https://<your-domain>/api/reminder/`
+
+---
+
+### `POST /api/reminder/create-reminder`
+
+Creates a new reminder event in Google Calendar.
+
+**Request Body:**
+
+```json
+{
+  "date": "2026-07-21",
+  "start_time": "2026-07-21T08:00:00",
+  "end_time": "2026-07-21T08:15:00",
+  "summary": "Minum Obat",
+  "reference_datetime": "2026-07-20T13:52:59"
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `start_time` | `string` | ✅ | ISO 8601 start datetime |
+| `end_time` | `string` | ✅ | ISO 8601 end datetime |
+| `summary` | `string` | ❌ | Event title (defaults to `"Reminder"`) |
+| `timeZone` | `string` | ❌ | Timezone (defaults to `"Asia/Jakarta"`) |
+
+**Success Response (`200`):**
+
+```json
+{
+  "success": true,
+  "event_id": "abc123xyz",
+  "html_link": "https://www.google.com/calendar/event?eid=..."
+}
+```
+
+**Error Response (`400`):**
+
+```json
+{
+  "success": false,
+  "error": "Missing start_time or end_time"
+}
+```
+
+---
+
+### `POST /api/reminder/list-reminder`
+
+Lists reminder events from Google Calendar within a time range.
+
+**Request Body:**
+
+```json
+{
+  "timeMin": "2026-07-20T00:00:00+07:00",
+  "timeMax": "2026-07-26T23:59:59+07:00",
+  "maxResults": 20
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query_mode` | `string` | ❌ | `"event_time"` (default), `"created_time"`, or `"updated_time"` |
+| `timeMin` | `string` | ❌ | ISO 8601 start of range (defaults to current time) |
+| `timeMax` | `string` | ❌ | ISO 8601 end of range |
+| `createdMin` | `string` | ❌ | Filter by creation time (ISO 8601) |
+| `createdMax` | `string` | ❌ | Filter by creation time (ISO 8601) |
+| `updatedMin` | `string` | ❌ | Filter by update time (ISO 8601) |
+| `updatedMax` | `string` | ❌ | Filter by update time (ISO 8601) |
+| `keyword` | `string` | ❌ | Search query keyword |
+| `maxResults` | `number` | ❌ | Maximum events to return (defaults to `20`) |
+
+**Success Response (`200`):**
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "query_mode": "event_time",
+  "reminders": [
+    {
+      "id": "abc123xyz",
+      "summary": "Minum Obat",
+      "start": "2026-07-21T08:00:00+07:00",
+      "end": "2026-07-21T08:15:00+07:00",
+      "timeZone": "Asia/Jakarta",
+      "status": "confirmed",
+      "created": "2026-07-20T08:00:00.000Z",
+      "updated": "2026-07-20T08:00:00.000Z",
+      "html_link": "https://www.google.com/calendar/event?eid=..."
+    },
+    {
+      "id": "def456uvw",
+      "summary": "Meeting Sama Klien",
+      "start": "2026-07-22T10:00:00+07:00",
+      "end": "2026-07-22T11:00:00+07:00",
+      "timeZone": "Asia/Jakarta",
+      "status": "confirmed",
+      "created": "2026-07-20T08:00:00.000Z",
+      "updated": "2026-07-20T08:00:00.000Z",
+      "html_link": "https://www.google.com/calendar/event?eid=..."
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/reminder/edit-reminder`
+
+Edits an existing reminder event in Google Calendar.
+
+**Request Body:**
+
+```json
+{
+  "id": "def456uvw",
+  "candidates": [],
+  "new_summary": "Review Project",
+  "new_date": "2026-07-23",
+  "new_start_time": "2026-07-23T15:00:00",
+  "new_end_time": null
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | `string` | ✅ | Event ID of the reminder to edit |
+| `new_summary` | `string` | ❌ | Updated event title |
+| `new_start_time` | `string` | ❌ | Updated start datetime |
+| `new_end_time` | `string` | ❌ | Updated end datetime |
+| `timeZone` | `string` | ❌ | Timezone (defaults to `"Asia/Jakarta"`) |
+
+> [!NOTE]
+> At least one of `new_summary`, `new_start_time`, or `new_end_time` must be provided.
+
+**Success Response (`200`):**
+
+```json
+{
+  "success": true,
+  "event_id": "def456uvw",
+  "summary": "Review Project",
+  "start": {
+    "dateTime": "2026-07-23T15:00:00+07:00",
+    "timeZone": "Asia/Jakarta"
+  },
+  "end": {
+    "dateTime": "2026-07-23T16:00:00+07:00",
+    "timeZone": "Asia/Jakarta"
+  },
+  "html_link": "https://www.google.com/calendar/event?eid=...",
+  "fields_updated": ["summary", "start"]
+}
+```
+
+**Error Response (`400`):**
+
+```json
+{
+  "success": false,
+  "error": "Missing or invalid reminder id"
+}
+```
+
+**Error Response (`404`):**
+
+```json
+{
+  "success": false,
+  "error": "Reminder not found"
+}
+```
+
+---
+
+### `POST /api/reminder/delete-reminder`
+
+Deletes a reminder event from Google Calendar.
+
+**Request Body:**
+
+```json
+{
+  "id": "def456uvw",
+  "candidates": []
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | `string` | ✅ | Event ID of the reminder to delete |
+
+**Success Response (`200`):**
+
+```json
+{
+  "success": true,
+  "deleted_id": "def456uvw"
+}
+```
+
+**Error Response (`400`):**
+
+```json
+{
+  "success": false,
+  "error": "Missing or invalid reminder id"
+}
+```
+
+**Error Response (`404`):**
+
+```json
+{
+  "success": false,
+  "error": "Reminder not found or already deleted"
+}
+```
+
+---
+
+## Known Issues
+
+- **`reminders_list` variable is persistence-dependent**
+  The `reminders_list` variable is only populated/updated when the user goes through the `usr.reminderList` branch (i.e., explicitly lists/shows their reminders). If a user tries to directly edit or delete a reminder without listing it first, `reminders_list` may be stale, empty, or mismatched, causing the `id` matching in the Edit/Delete `Grab Context` steps to fail or resolve to the wrong reminder.
+
+- **No API Key Setup**
+  This backend proxy still does not implement any API key or authentication mechanism. All endpoints are publicly accessible once deployed. Authentication will be added in a future update.
+
+---
+
+## Solved Issues
+
+- **LLM non-determinism — instruction-following failure**
+  At some point, the `edit-reminder` and `delete-reminder` operations may fail when the AI fails to correctly fetch/extract the target reminder's `id`, even though the intended reminder exists in the list. This stems from inherent LLM non-determinism in the Agent Assistant / Entity LLM steps rather than a backend proxy bug.
+  **Solved (22 July 2026):** Resolved by using a different LLM model for the Agent Assistant, specifically OpenAI GPT-4o.
+
+---
+
 ## Working Bot Footage
 
 - **Listing Reminder**
@@ -228,5 +511,4 @@ You can try out a live example of the reminder bot running on Botika Webchat:
 ![Delete Reminder in Webchat](public/chatbot/images/deletec.png)
 ![Google Calendar View](public/chatbot/images/deleteg.png)
 *More of Delete Test Footage*
-![Delete Reminder in Webchat](public/chatbot/images/deletestc.png)#   g o o g l e _ c a l e n d a r _ i n t e g r a s i  
- 
+![Delete Reminder in Webchat](public/chatbot/images/deletestc.png)
